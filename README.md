@@ -1,4 +1,8 @@
 
+برای نصب و اجرای دوباره اسکریپت باید کد زیر را درسرور خارچ بزنیم
+```
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/refs/heads/main/manager.sh)
+```
 
 
 برای ان اینستال کردن اسکریپت به سه نکته زیر توجه باید کرد بعد انتخاب گزینه ان اینستال و تایید در انتها بعد از خروج از اسکریپت باید کد دستوری 
