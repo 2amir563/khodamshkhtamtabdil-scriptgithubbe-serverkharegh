@@ -2,6 +2,7 @@
 
 # --- تنظیمات ---
 BASE_DIR="$HOME/dl_files"
+CONFIG_FILE="$BASE_DIR/.port_config"
 
 # --- رنگ‌ها ---
 RED='\033[0;31m'
@@ -24,8 +25,18 @@ select DIRS in "$BASE_DIR"/*/ "DELETE-ALL-SCRIPTS" "Quit"; do
         "DELETE-ALL-SCRIPTS")
             read -p "آیا از حذف تمام اسکریپت‌ها و پوشه '$BASE_DIR' مطمئن هستید؟ [y/N] " confirm
             if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+                # توقف وب‌سرور با پورت ذخیره شده
+                if [ -f "$CONFIG_FILE" ]; then
+                    PORT=$(cat "$CONFIG_FILE")
+                    echo "در حال توقف وب‌سرور روی پورت $PORT..."
+                    pkill -f "python3 -m http.server $PORT"
+                else
+                    echo "فایل تنظیمات پورت یافت نشد. تلاش برای توقف هر وب‌سرور پایتون..."
+                    pkill -f "python3 -m http.server"
+                fi
+                
                 rm -rf "$BASE_DIR"
-                echo -e "${RED}تمام اسکریپت‌ها حذف شدند.${NC}"
+                echo -e "${RED}تمام اسکریپت‌ها و فایل تنظیمات پورت حذف شدند.${NC}"
             else
                 echo "عملیات لغو شد."
             fi
