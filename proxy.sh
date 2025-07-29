@@ -1,20 +1,18 @@
 #!/bin/bash
 
 # --- تنظیمات ---
-# پوشه‌ای که فایل‌ها در آن دانلود و سرو می‌شوند
-DOWNLOAD_DIR="$HOME/dl_files"
-# پورتی که وب‌سرور روی آن اجرا می‌شود
+BASE_DIR="$HOME/dl_files"
 PORT=8000
 
-# --- رنگ‌ها برای خروجی ---
+# --- رنگ‌ها ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# ۱. چک کردن اینکه آیا URL به عنوان ورودی داده شده است یا نه
+# ۱. چک کردن ورودی URL
 if [ -z "$1" ]; then
-  echo -e "${YELLOW}خطا: لطفاً آدرس URL اسکریپت را به عنوان ورودی به این اسکریپت بدهید.${NC}"
+  echo -e "${YELLOW}خطا: لطفاً آدرس URL اسکریپت را به عنوان ورودی بدهید.${NC}"
   echo "مثال: ./proxy.sh https://example.com/script.sh"
   exit 1
 fi
@@ -22,58 +20,43 @@ fi
 URL=$1
 FILENAME=$(basename "$URL")
 
-# ۲. ساخت پوشه دانلود و رفتن به آن
-mkdir -p "$DOWNLOAD_DIR"
-cd "$DOWNLOAD_DIR"
+# --- بخش جدید: ساخت پوشه منحصر به فرد بر اساس هش URL ---
+# از ۸ کاراکتر اول هش MD5 برای ساخت نام پوشه استفاده می‌کنیم
+DIR_HASH=$(echo -n "$URL" | md5sum | cut -c1-8)
+TARGET_DIR="$BASE_DIR/$DIR_HASH"
+FINAL_URL_PATH="$DIR_HASH/$FILENAME"
 
-# ۳. دانلود فایل
-echo -e "\n${CYAN}در حال دانلود فایل: ${FILENAME}...${NC}"
-wget -q -O "$FILENAME" "$URL"
-if [ $? -ne 0 ]; then
-    echo -e "${YELLOW}خطا: دانلود فایل از آدرس داده شده با شکست مواجه شد.${NC}"
-    exit 1
-fi
-echo -e "${GREEN}دانلود با موفقیت انجام شد.${NC}"
+# ۲. رفتن به پوشه اصلی و آماده‌سازی وب‌سرور
+mkdir -p "$BASE_DIR"
+cd "$BASE_DIR"
 
-# ۴. چک کردن و اجرای وب‌سرور در پس‌زمینه
+# چک کردن و اجرای وب‌سرور
 if ! pgrep -f "python3 -m http.server $PORT" > /dev/null; then
-  echo -e "\n${CYAN}وب‌سرور در حال اجرا نیست. در حال فعال‌سازی روی پورت $PORT...${NC}"
-  # اجرای وب‌سرور در پس‌زمینه
+  echo -e "\n${CYAN}در حال فعال‌سازی وب‌سرور روی پورت $PORT...${NC}"
   nohup python3 -m http.server $PORT >/dev/null 2>&1 &
-  echo -e "${GREEN}وب‌سرور فعال شد. (فراموش نکنید پورت $PORT را در فایروال باز کنید: sudo ufw allow $PORT/tcp)${NC}"
+  echo -e "${GREEN}وب‌سرور فعال شد. (فراموش نکنید پورت $PORT را در فایروال باز کنید)${NC}"
 else
-  echo -e "\n${GREEN}وب‌سرور از قبل روی پورت $PORT فعال است.${NC}"
+  echo -e "\n${GREEN}وب‌سرور از قبل فعال است.${NC}"
 fi
 
-# ۵. دریافت IP عمومی سرور خارج
-IP_ADDR=$(curl -s ifconfig.me)
+# ۳. بررسی وجود پوشه و دانلود فایل
+if [ -d "$TARGET_DIR" ]; then
+    echo -e "\n${YELLOW}این URL قبلاً پردازش شده است. پوشه '$DIR_HASH' وجود دارد. از دانلود مجدد صرف‌نظر می‌شود.${NC}"
+else
+    echo -e "\n${CYAN}در حال ساخت پوشه جدید: $TARGET_DIR${NC}"
+    mkdir -p "$TARGET_DIR"
+    echo -e "${CYAN}در حال دانلود فایل: ${FILENAME}...${NC}"
+    if ! wget -q -O "$TARGET_DIR/$FILENAME" "$URL"; then
+        echo -e "${YELLOW}خطا: دانلود فایل با شکست مواجه شد.${NC}"
+        rm -rf "$TARGET_DIR" # پاک کردن پوشه در صورت دانلود ناموفق
+        exit 1
+    fi
+    echo -e "${GREEN}دانلود با موفقیت انجام شد.${NC}"
+fi
 
-# ۶. نمایش دستور نهایی برای سرور ایران
+# ۴. دریافت IP و نمایش دستور نهایی
+IP_ADDR=$(curl -s ifconfig.me)
 echo -e "\n====================================================================="
 echo -e "${YELLOW}دستور زیر را کپی کرده و در سرور ایران خود اجرا کنید:${NC}"
 echo -e "=====================================================================\n"
-
-# تشخیص نوع دستور مورد نیاز بر اساس محتوای ورودی کاربر
-if [[ "$URL" == *".py"* || "$URL" == *"/restart_scheduler.py"* ]]; then
-    # Generate the multi-line command for python scripts that need local modification
-    MODIFIED_SCRIPT_URL="http://$IP_ADDR:$PORT/$FILENAME"
-    echo -e "${GREEN}sudo bash -c '
-    set -e;
-    SCRIPT_URL=\"$MODIFIED_SCRIPT_URL\";
-    INSTALL_DIR=\"/usr/local/bin\";
-    SCRIPT_NAME_IN_PATH=\"restart_scheduler\";
-    # ... (rest of the multi-line script logic) ...
-    echo \"INFO: Downloading script from your server...\";
-    curl -fsSL \\\"\$SCRIPT_URL\\\" -o /tmp/temp_script.py && mv /tmp/temp_script.py \\\"\$INSTALL_DIR/\\\$SCRIPT_NAME_IN_PATH\\\" && chmod +x \\\"\$INSTALL_DIR/\\\$SCRIPT_NAME_IN_PATH\\\";
-    \\\"\$INSTALL_DIR/\\\$SCRIPT_NAME_IN_PATH\\\";
-    '${NC}\n"
-elif [[ "$1" == *"&&"* ]]; then
-    # Handle chained commands
-    FIRST_PART=$(echo "$1" | awk -F '&&' '{print $1}' | sed 's/curl -O //g' | xargs)
-    FILENAME_CHAIN=$(basename "$FIRST_PART")
-    MODIFIED_URL="http://$IP_ADDR:$PORT/$FILENAME_CHAIN"
-    echo -e "${GREEN}curl -O $MODIFIED_URL && ${1#*&& }${NC}\n"
-else
-    # Default simple pipe command
-    echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$FILENAME)${NC}\n"
-fi
+echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$FINAL_URL_PATH)${NC}\n"
