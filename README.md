@@ -18,4 +18,9 @@ bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-s
 bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/refs/heads/main/cleanup.sh)
 ```
 
+دستور کامل برای پاک‌سازی
+این دستور را به طور کامل کپی و در سرور خارج خود اجرا کنید:
 
+```
+pkill -f "python3 -m http.server 8000"; rm -rf ~/dl_files ~/proxy.sh ~/cleanup.sh; sudo ufw delete allow 8000/tcp
+```
