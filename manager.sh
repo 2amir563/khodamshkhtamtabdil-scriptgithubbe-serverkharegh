@@ -97,6 +97,10 @@ add_script_full_proxy() {
         echo -e "${CYAN}Downloading main script to ${MODIFIED_SCRIPT_PATH}...${NC}"
         if ! wget -q -O "$MODIFIED_SCRIPT_PATH" "$URL"; then echo -e "${RED}Failed.${NC}"; rm -rf "$TARGET_DIR"; return; fi
 
+        # *** BUG FIX IS HERE ***
+        # Save the original command log so the list function can find it
+        echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
+
         echo -e "${CYAN}Searching for dependencies inside the script...${NC}"
         DEPENDENCY_URLS=$(grep -oE 'https?://[a-zA-Z0-9./_-]+\.(tar\.gz|sh|zip|dat)' "$MODIFIED_SCRIPT_PATH" | sort -u)
 
@@ -161,8 +165,15 @@ delete_script() {
         if [ -d "$dir" ]; then
             local script_file=$(find "$dir" -maxdepth 1 -type f -print -quit)
             if [ -n "$script_file" ]; then
-                local script_name=$(basename "$script_file")
-                options+=("Script: '$script_name' (Dir: ${dir%/})")
+                # Look for the original command log to get the real script name
+                local log_file="$dir/$COMMAND_LOG_FILE"
+                if [ -f "$log_file" ]; then
+                    local url_in_log=$(grep -oE 'https?://[a-zA-Z0-9./_-]+' "$log_file" | head -n 1)
+                    local script_name=$(basename "$url_in_log")
+                    options+=("Script: '$script_name' (Dir: ${dir%/})")
+                else # Fallback if log is missing
+                    options+=("Unknown Script (Dir: ${dir%/})")
+                fi
             fi
         fi
     done
