@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# --- تنظیمات ---
+# --- Settings ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
 
-# --- رنگ‌ها ---
+# --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- توابع ---
+# --- Functions ---
 
+# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -32,6 +33,7 @@ manage_port_and_server() {
     fi
 }
 
+# Adds a new script by intelligently generating the final command
 add_script() {
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
@@ -66,15 +68,31 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- Final, Corrected, and Robust Command Generation ---
-    FINAL_COMMAND="${USER_INPUT//$URL/$NEW_DOWNLOAD_URL}"
-    # --------------------------------------------------------
+    # --- Final, Foolproof Command Generation ---
+    echo -e "\n${YELLOW}--- Command for Iran Server ---${NC}"
 
-    echo -e "\n${YELLOW}--- Automatically Generated Command for Iran Server ---${NC}"
-    echo -e "${GREEN}${FINAL_COMMAND}${NC}"
+    # Check for simple 'bash <(curl...)' cases
+    if [[ "$USER_INPUT" != *"&&"* && "$USER_INPUT" != *"sudo bash -c"* ]]; then
+        # For simple cases, generate the full command automatically
+        FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
+        echo -e "${GREEN}${FINAL_COMMAND}${NC}"
+    else
+        # For complex cases, provide the pieces for manual replacement
+        echo -e "${YELLOW}This is a complex command. Please replace the URL manually as shown below.${NC}"
+        echo -e "1. Find this original URL in your command:"
+        echo -e "${RED}$URL${NC}"
+        echo -e "2. Replace it with this new download URL:"
+        echo -e "${GREEN}$NEW_DOWNLOAD_URL${NC}"
+        
+        # Build an example of the final command for user reference
+        EXAMPLE_COMMAND="${USER_INPUT//$URL/$NEW_DOWNLOAD_URL}"
+        echo -e "\n${CYAN}Your final command should be:${NC}"
+        echo -e "${GREEN}${EXAMPLE_COMMAND}${NC}"
+    fi
+    # ------------------------------------
 }
 
-# (سایر توابع بدون تغییر باقی می‌مانند)
+# (The rest of the functions remain unchanged)
 
 list_commands() {
     if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return; fi
@@ -134,7 +152,7 @@ uninstall_manager() {
     else echo "Canceled."; fi
 }
 
-# --- منوی اصلی ---
+# --- Main Menu ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
