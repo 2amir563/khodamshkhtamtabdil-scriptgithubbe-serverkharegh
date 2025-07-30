@@ -129,6 +129,51 @@ sudo bash -c '
 ```
 
 
+6 برای نصب پنل ایکس یو ای صناعی کد زیر را لازم است بزنیم
+
+```
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+
+```
+
+Step 1: On the Foreign Server
+Run your manager.sh script with the 3X-UI installation URL as the target:
+
+```
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/main/manager.sh) https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh
+```
+
+Step 2: On the Iran Server
+The command above will run and then output the final command for your Iran server. Copy that output and run it. It will look similar to this:
+
+```
+bash <(curl -Ls http://YOUR_FOREIGN_SERVER_IP:PORT/UNIQUE_HASH/install.sh)
+```
+
+پنا s-ui علیرضا گیتهاب
+
+
+```
+bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
+```
+
+Step 1: On the Foreign Server
+Run your manager.sh script with the Sanaei-UI installation URL as the target
+
+```
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/main/manager.sh) https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh
+```
+
+Step 2: On the Iran Server
+The command above will generate the final command for your Iran server. Copy the output and run it. It will look like this:
+
+```
+bash <(curl -Ls http://YOUR_FOREIGN_SERVER_IP:PORT/UNIQUE_HASH/install.sh)
+```
+
+
+
+
 
 ```
 bash <(curl -
@@ -145,6 +190,167 @@ bash <(curl -
 ```
 bash <(curl -
 ```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
+
+
+```
+bash <(curl -
+```
+
 
 
 
