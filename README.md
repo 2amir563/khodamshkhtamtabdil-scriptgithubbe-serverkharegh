@@ -3,8 +3,9 @@
 
 
 برای نصب و اجرای دوباره اسکریپت باید کد زیر را درسرور خارچ بزنیم
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/main/manager.sh)
 ```
-bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/refs/heads/main/manager.sh)
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/main/manager.sh)
 ```
 
 
