@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# --- Settings ---
+# --- تنظیمات ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
+COMMAND_LOG_FILE="original_command.log" # فایل برای ذخیره دستور اصلی
 
-# --- Colors ---
+# --- رنگ‌ها ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- Functions ---
+# --- توابع ---
 
-# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -33,19 +33,16 @@ manage_port_and_server() {
     fi
 }
 
-# Adds a new script by intelligently generating the final command
 add_script() {
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
     if [ -z "$USER_INPUT" ]; then
-        echo -e "${RED}Input cannot be empty.${NC}"
-        return
+        echo -e "${RED}Input cannot be empty.${NC}"; return
     fi
 
     URL=$(echo "$USER_INPUT" | grep -oE 'https?://[a-zA-Z0-9./_-]+')
     if [ -z "$URL" ]; then
-        echo -e "${RED}Error: No valid URL found in your input.${NC}"
-        return
+        echo -e "${RED}Error: No valid URL found.${NC}"; return
     fi
     echo -e "${CYAN}Extracted URL: $URL${NC}"
     
@@ -59,61 +56,67 @@ add_script() {
         mkdir -p "$TARGET_DIR"
         echo -e "${CYAN}Downloading: ${FILENAME}...${NC}"
         if ! wget -q -O "$TARGET_DIR/$FILENAME" "$URL"; then
-            echo -e "${RED}Error: Download failed.${NC}"; rm -rf "$TARGET_DIR"; return
+            echo -e "${RED}Download failed.${NC}"; rm -rf "$TARGET_DIR"; return
         fi
+        # --- بخش جدید: ذخیره دستور اصلی ---
+        echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
         echo -e "${GREEN}Download successful.${NC}"
     fi
 
     IP_ADDR=$(curl -s ifconfig.me)
-    FINAL_URL_PATH="$DIR_HASH/$FILENAME"
-    NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
+    NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$DIR_HASH/$FILENAME"
 
-    # --- New, Instructional Command Generation ---
-    echo -e "\n${YELLOW}--- Dastoor-ha baraye Server-e Iran ---${NC}"
-
-    # Check for simple 'bash <(curl...)' cases
+    echo -e "\n${YELLOW}--- Command for Iran Server ---${NC}"
     if [[ "$USER_INPUT" != *"&&"* && "$USER_INPUT" != *"sudo bash -c"* ]]; then
-        # For simple cases, generate the full command automatically
-        echo -e "In yek script-e sade ast. Dastoor-e zir ra mostaghim dar server-e Iran ejra konid:"
-        FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
-        echo -e "\n${GREEN}${FINAL_COMMAND}${NC}"
+        echo -e "${GREEN}bash <(curl -Ls $NEW_DOWNLOAD_URL)${NC}"
     else
-        # For complex scripts, provide step-by-step instructions
-        echo -e "\n${YELLOW}In script yek script-e pichide ast. Baraye nasb, 3 dastoor-e zir ra be tartib dar server-e Iran vared konid:${NC}\n"
-    
-        # Step 1: Download
-        echo -e "${CYAN}1. Aval, script ra ba dastoor-e zir download konid:${NC}"
+        echo -e "\n${YELLOW}This is a complex script. Follow the 3 steps below on your Iran server:${NC}\n"
+        echo -e "${CYAN}1. Download the script:${NC}"
         echo -e "${GREEN}curl -O $NEW_DOWNLOAD_URL${NC}\n"
-        
-        # Step 2: Make executable
-        echo -e "${CYAN}2. Dovom, file ra ghabele ejra konid:${NC}"
+        echo -e "${CYAN}2. Make it executable:${NC}"
         echo -e "${GREEN}chmod +x $FILENAME${NC}\n"
-        
-        # Step 3: Run
-        echo -e "${CYAN}3. Sevom, script ra mostaghim ejra konid (ta menu namayesh dade shavad):${NC}"
+        echo -e "${CYAN}3. Run the script directly:${NC}"
         echo -e "${GREEN}./$FILENAME${NC}"
     fi
-    # ------------------------------------
 }
 
-# (The rest of the functions remain unchanged)
-
 list_commands() {
-    if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return; fi
-    PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me); echo -e "\n--- List of Commands ---"; echo -e "IP: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
+    if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts or port configured.${NC}"; return; fi
+    PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me)
+    echo -e "\n--- List of Commands for Iran Server ---"
+    echo -e "IP: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
+    
     found_scripts=false
     for dir in "$BASE_DIR"/*/; do
         if [ -d "$dir" ]; then
-            for script_path in "$dir"*; do
-                if [ -f "$script_path" ]; then
-                    relative_path=${script_path#"$BASE_DIR/"}; script_name=$(basename "$script_path")
-                    echo -e "${YELLOW}'${script_name}':${NC} ${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$relative_path)${NC}\n"
-                    found_scripts=true
-                fi; done; fi; done
+            LOG_FILE_PATH="$dir/$COMMAND_LOG_FILE"
+            if [ -f "$LOG_FILE_PATH" ]; then
+                ORIGINAL_CMD=$(cat "$LOG_FILE_PATH")
+                URL=$(echo "$ORIGINAL_CMD" | grep -oE 'https?://[a-zA-Z0-9./_-]+')
+                FILENAME=$(basename "$URL")
+                DIR_HASH=${dir%/}
+                DIR_HASH=${DIR_HASH##*/}
+                NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$DIR_HASH/$FILENAME"
+                
+                echo -e "-----------------------------------------"
+                echo -e "${YELLOW}Script: '${FILENAME}'${NC}"
+                
+                if [[ "$ORIGINAL_CMD" != *"&&"* && "$ORIGINAL_CMD" != *"sudo bash -c"* ]]; then
+                    echo -e "${GREEN}bash <(curl -Ls $NEW_DOWNLOAD_URL)${NC}"
+                else
+                    echo -e "${CYAN}1. Download:${NC} ${GREEN}curl -O $NEW_DOWNLOAD_URL${NC}"
+                    echo -e "${CYAN}2. Make Executable:${NC} ${GREEN}chmod +x $FILENAME${NC}"
+                    echo -e "${CYAN}3. Run:${NC} ${GREEN}./$FILENAME${NC}"
+                fi
+                found_scripts=true
+            fi
+        fi
+    done
     if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No scripts found.${NC}"; fi
 }
 
 delete_script() {
+    # (این تابع بدون تغییر باقی می‌ماند)
     if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then echo -e "${YELLOW}No scripts to delete.${NC}"; return; fi
     PS3=$'\n'"${YELLOW}Which item to delete?: ${NC}"
     select DIRS in "$BASE_DIR"/*/ "DELETE-ALL-SCRIPTS" "Back to Main Menu"; do
@@ -133,6 +136,7 @@ delete_script() {
 }
 
 change_port() {
+    # (این تابع بدون تغییر باقی می‌ماند)
     if [ -f "$CONFIG_FILE" ]; then
         OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current: $OLD_PORT"
         if pgrep -f "python3 -m http.server $OLD_PORT" > /dev/null; then
@@ -148,6 +152,7 @@ change_port() {
 }
 
 uninstall_manager() {
+    # (این تابع بدون تغییر باقی می‌ماند)
     read -p "Uninstall manager and all scripts? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
         if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
@@ -156,7 +161,7 @@ uninstall_manager() {
     else echo "Canceled."; fi
 }
 
-# --- Main Menu ---
+# --- منوی اصلی ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
