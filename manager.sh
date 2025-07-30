@@ -1,19 +1,18 @@
 #!/bin/bash
 
-# --- Settings ---
+# --- تنظیمات ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
 
-# --- Colors ---
+# --- رنگ‌ها ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- Functions ---
+# --- توابع ---
 
-# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -33,7 +32,6 @@ manage_port_and_server() {
     fi
 }
 
-# Adds a new script by intelligently generating the final command
 add_script() {
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
@@ -68,30 +66,15 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- Corrected and Robust Command Generation ---
-    FINAL_COMMAND=""
-    # Check for chained commands that save the file first
-    if [[ "$USER_INPUT" == *"curl -O"* || "$USER_INPUT" == *"wget"* && "$USER_INPUT" == *"&&"* ]]; then
-        # Rebuild the command chain safely
-        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^&]+')
-        REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
-        FINAL_COMMAND="${USER_INPUT/$ORIGINAL_DOWNLOAD_CMD/$REPLACEMENT_COMMAND}"
-
-    elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
-        # Replace the URL inside the multi-line block
-        FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\`\"']*|$NEW_DOWNLOAD_URL|")
-
-    else
-        # Default case for simple scripts (bash <(curl ...))
-        FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
-    fi
+    # --- Corrected and Simplified Command Generation ---
+    # This single line robustly replaces the original URL with the new one in the user's command.
+    FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|$URL|$NEW_DOWNLOAD_URL|")
     # --------------------------------------------------------
 
     echo -e "\n${YELLOW}--- Automatically Generated Command for Iran Server ---${NC}"
     echo -e "${GREEN}${FINAL_COMMAND}${NC}"
 }
 
-# Lists generated commands
 list_commands() {
     if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return; fi
     PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me); echo -e "\n--- List of Commands ---"; echo -e "IP: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
@@ -107,7 +90,6 @@ list_commands() {
     if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No scripts found.${NC}"; fi
 }
 
-# Deletes scripts interactively
 delete_script() {
     if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then echo -e "${YELLOW}No scripts to delete.${NC}"; return; fi
     PS3=$'\n'"${YELLOW}Which item to delete?: ${NC}"
@@ -127,7 +109,6 @@ delete_script() {
         esac; done
 }
 
-# Changes the web server port
 change_port() {
     if [ -f "$CONFIG_FILE" ]; then
         OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current: $OLD_PORT"
@@ -143,7 +124,6 @@ change_port() {
     manage_port_and_server
 }
 
-# Uninstalls the manager script
 uninstall_manager() {
     read -p "Uninstall manager and all scripts? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
