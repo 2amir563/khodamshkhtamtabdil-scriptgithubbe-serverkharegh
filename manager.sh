@@ -68,26 +68,30 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- Final, Foolproof Command Generation ---
-    echo -e "\n${YELLOW}--- Command for Iran Server ---${NC}"
+    # --- New, Instructional Command Generation ---
+    echo -e "\n${YELLOW}--- Dastoor-ha baraye Server-e Iran ---${NC}"
 
     # Check for simple 'bash <(curl...)' cases
     if [[ "$USER_INPUT" != *"&&"* && "$USER_INPUT" != *"sudo bash -c"* ]]; then
         # For simple cases, generate the full command automatically
+        echo -e "In yek script-e sade ast. Dastoor-e zir ra mostaghim dar server-e Iran ejra konid:"
         FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
-        echo -e "${GREEN}${FINAL_COMMAND}${NC}"
+        echo -e "\n${GREEN}${FINAL_COMMAND}${NC}"
     else
-        # For complex cases, provide the pieces for manual replacement
-        echo -e "${YELLOW}This is a complex command. Please replace the URL manually as shown below.${NC}"
-        echo -e "1. Find this original URL in your command:"
-        echo -e "${RED}$URL${NC}"
-        echo -e "2. Replace it with this new download URL:"
-        echo -e "${GREEN}$NEW_DOWNLOAD_URL${NC}"
+        # For complex scripts, provide step-by-step instructions
+        echo -e "\n${YELLOW}In script yek script-e pichide ast. Baraye nasb, 3 dastoor-e zir ra be tartib dar server-e Iran vared konid:${NC}\n"
+    
+        # Step 1: Download
+        echo -e "${CYAN}1. Aval, script ra ba dastoor-e zir download konid:${NC}"
+        echo -e "${GREEN}curl -O $NEW_DOWNLOAD_URL${NC}\n"
         
-        # Build an example of the final command for user reference
-        EXAMPLE_COMMAND="${USER_INPUT//$URL/$NEW_DOWNLOAD_URL}"
-        echo -e "\n${CYAN}Your final command should be:${NC}"
-        echo -e "${GREEN}${EXAMPLE_COMMAND}${NC}"
+        # Step 2: Make executable
+        echo -e "${CYAN}2. Dovom, file ra ghabele ejra konid:${NC}"
+        echo -e "${GREEN}chmod +x $FILENAME${NC}\n"
+        
+        # Step 3: Run
+        echo -e "${CYAN}3. Sevom, script ra mostaghim ejra konid (ta menu namayesh dade shavad):${NC}"
+        echo -e "${GREEN}./$FILENAME${NC}"
     fi
     # ------------------------------------
 }
