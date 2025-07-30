@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# --- تنظیمات ---
+# --- Settings ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
 
-# --- رنگ‌ها ---
+# --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- توابع ---
+# --- Functions ---
 
+# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -32,6 +33,7 @@ manage_port_and_server() {
     fi
 }
 
+# Adds a new script by intelligently generating the final command
 add_script() {
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
@@ -66,24 +68,21 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- بخش جدید و اصلاح شده: تشخیص نوع دستور و ساخت خروجی هوشمند ---
+    # --- Intelligent and Corrected Command Generation ---
     FINAL_COMMAND=""
-    # بررسی دقیق‌تر برای دستورات زنجیره‌ای
-    if [[ "$USER_INPUT" == *curl\ -O* || "$USER_INPUT" == *wget* ]]; then
-        # حالت زنجیره‌ای (curl -O ... && ...)
-        # جایگزینی بخش دانلود با لینک جدید
-        # استخراج دستور دانلود اولیه برای جایگزینی
-        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^\&]+')
+    # Check for chained commands like 'curl -O' or 'wget'
+    if [[ "$USER_INPUT" == *"curl -O"* || "$USER_INPUT" == *"wget"* && "$USER_INPUT" == *"&&"* ]]; then
+        # This is a chained command that saves the file first
+        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^&]+')
         REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
         FINAL_COMMAND="${USER_INPUT/$ORIGINAL_DOWNLOAD_CMD/$REPLACEMENT_COMMAND}"
 
     elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
-        # حالت بلاک کد چندخطی
-        # جایگزینی URL داخل متغیر
+        # This is a multi-line block command
         FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\`\"']*|$NEW_DOWNLOAD_URL|")
 
     else
-        # حالت پیش‌فرض (bash <(curl ...))
+        # This is the default case for simple scripts (bash <(curl ...))
         FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
     fi
     # --------------------------------------------------------
@@ -92,8 +91,7 @@ add_script() {
     echo -e "${GREEN}${FINAL_COMMAND}${NC}"
 }
 
-# (بقیه توابع بدون تغییر باقی می‌مانند)
-
+# Lists generated commands
 list_commands() {
     if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return; fi
     PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me); echo -e "\n--- List of Commands ---"; echo -e "IP: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
@@ -109,6 +107,7 @@ list_commands() {
     if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No scripts found.${NC}"; fi
 }
 
+# Deletes scripts interactively
 delete_script() {
     if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then echo -e "${YELLOW}No scripts to delete.${NC}"; return; fi
     PS3=$'\n'"${YELLOW}Which item to delete?: ${NC}"
@@ -128,6 +127,7 @@ delete_script() {
         esac; done
 }
 
+# Changes the web server port
 change_port() {
     if [ -f "$CONFIG_FILE" ]; then
         OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current: $OLD_PORT"
@@ -143,6 +143,7 @@ change_port() {
     manage_port_and_server
 }
 
+# Uninstalls the manager script
 uninstall_manager() {
     read -p "Uninstall manager and all scripts? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
@@ -152,7 +153,7 @@ uninstall_manager() {
     else echo "Canceled."; fi
 }
 
-# --- منوی اصلی ---
+# --- Main Menu ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
