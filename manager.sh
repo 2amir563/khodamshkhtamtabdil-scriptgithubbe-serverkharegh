@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# --- تنظیمات ---
+# --- Settings ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
 
-# --- رنگ‌ها ---
+# --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- توابع ---
+# --- Functions ---
 
+# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -32,8 +33,9 @@ manage_port_and_server() {
     fi
 }
 
+# Adds a new script by intelligently generating the final command
 add_script() {
-    echo "Please enter the full original installation command:"
+    echo "Please paste the full original installation command:"
     read -r USER_INPUT
     if [ -z "$USER_INPUT" ]; then
         echo -e "${RED}Input cannot be empty.${NC}"
@@ -66,35 +68,29 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- بخش جدید: تشخیص نوع دستور و ساخت خروجی هوشمند ---
+    # --- Intelligent Command Generation ---
     FINAL_COMMAND=""
     if [[ "$USER_INPUT" == *"curl -O"* ]]; then
-        # حالت زنجیره‌ای (curl -O ... && ...)
-        # جایگزینی بخش دانلود با لینک جدید
+        # Chained command (curl -O ... && ...)
         REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
-        # پیدا کردن بقیه دستور بعد از && اول
         REST_OF_COMMAND="${USER_INPUT#*&&}"
         FINAL_COMMAND="$REPLACEMENT_COMMAND &&$REST_OF_COMMAND"
-
     elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
-        # حالت بلاک کد چندخطی
-        # جایگزینی متغیر SCRIPT_URL
+        # Multi-line block command
         FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\"]*|$NEW_DOWNLOAD_URL|")
-
     else
-        # حالت پیش‌فرض (bash <(curl ...))
+        # Default case (bash <(curl ...))
         FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
     fi
-    # --------------------------------------------------------
+    # ------------------------------------
 
     echo -e "\n${YELLOW}--- Automatically Generated Command for Iran Server ---${NC}"
     echo -e "${GREEN}${FINAL_COMMAND}${NC}"
 }
 
-
+# Lists generated commands (simple format)
 list_commands() {
-    # (این تابع بدون تغییر باقی می‌ماند)
-    if [ ! -d "$BASE_DIR" ] || [ ! -f "$CONFIG_FILE" ]; then
+    if [ ! -f "$CONFIG_FILE" ]; then
         echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return
     fi
     PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me)
@@ -108,7 +104,7 @@ list_commands() {
                 if [ -f "$script_path" ]; then
                     relative_path=${script_path#"$BASE_DIR/"}; script_name=$(basename "$script_path")
                     echo -e "${YELLOW}Command for '${script_name}':${NC}"
-                    echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$relative_path)${NC}\n" # پیش فرض ساده نمایش داده میشود
+                    echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$relative_path)${NC}\n"
                     found_scripts=true
                 fi
             done
@@ -117,9 +113,8 @@ list_commands() {
     if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No downloaded scripts found.${NC}"; fi
 }
 
-
+# Deletes scripts interactively
 delete_script() {
-    # (این تابع بدون تغییر باقی می‌ماند)
     if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then
         echo -e "${YELLOW}No scripts to delete.${NC}"; return
     fi
@@ -143,9 +138,8 @@ delete_script() {
     done
 }
 
-
+# Changes the web server port
 change_port() {
-    # (این تابع بدون تغییر باقی می‌ماند)
     if [ -f "$CONFIG_FILE" ]; then
         OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current port: $OLD_PORT"
         if pgrep -f "python3 -m http.server $OLD_PORT" > /dev/null; then
@@ -160,9 +154,8 @@ change_port() {
     manage_port_and_server
 }
 
-
+# Uninstalls the manager script
 uninstall_manager() {
-    # (این تابع بدون تغییر باقی می‌ماند)
     read -p "This will remove the manager and all downloaded scripts. Are you sure? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
         if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
@@ -172,13 +165,12 @@ uninstall_manager() {
     else echo "Canceled."; fi
 }
 
-
-# --- منوی اصلی ---
+# --- Main Menu ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
     echo "1. Add New Script"
-    echo "2. List Generated Commands (Simple format)"
+    echo "2. List Generated Commands"
     echo "3. Delete a Script / All Scripts"
     echo "4. Change Port"
     echo -e "${RED}5. Uninstall Script Manager${NC}"
