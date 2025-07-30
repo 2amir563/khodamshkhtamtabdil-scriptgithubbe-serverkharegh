@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# --- تنظیمات ---
+# --- Settings ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
-COMMAND_LOG_FILE="original_command.log" # فایل برای ذخیره دستور اصلی
+COMMAND_LOG_FILE="original_command.log"
 
-# --- رنگ‌ها ---
+# --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- توابع ---
+# --- Functions ---
 
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
@@ -58,24 +58,23 @@ add_script() {
         if ! wget -q -O "$TARGET_DIR/$FILENAME" "$URL"; then
             echo -e "${RED}Download failed.${NC}"; rm -rf "$TARGET_DIR"; return
         fi
-        # --- بخش جدید: ذخیره دستور اصلی ---
         echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
         echo -e "${GREEN}Download successful.${NC}"
     fi
 
-    IP_ADDR=$(curl -s ifconfig.me)
-    NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$DIR_HASH/$FILENAME"
-
-    echo -e "\n${YELLOW}--- Command for Iran Server ---${NC}"
+    echo -e "\n${YELLOW}--- Dastoor-ha baraye Server-e Iran ---${NC}"
     if [[ "$USER_INPUT" != *"&&"* && "$USER_INPUT" != *"sudo bash -c"* ]]; then
-        echo -e "${GREEN}bash <(curl -Ls $NEW_DOWNLOAD_URL)${NC}"
+        NEW_DOWNLOAD_URL="http://$(curl -s ifconfig.me):$PORT/$DIR_HASH/$FILENAME"
+        echo -e "In yek script-e sade ast. Dastoor-e zir ra mostaghim dar server-e Iran ejra konid:"
+        echo -e "\n${GREEN}bash <(curl -Ls $NEW_DOWNLOAD_URL)${NC}"
     else
-        echo -e "\n${YELLOW}This is a complex script. Follow the 3 steps below on your Iran server:${NC}\n"
-        echo -e "${CYAN}1. Download the script:${NC}"
+        NEW_DOWNLOAD_URL="http://$(curl -s ifconfig.me):$PORT/$DIR_HASH/$FILENAME"
+        echo -e "\n${YELLOW}In script yek script-e pichide ast. Baraye nasb, 3 dastoor-e zir ra be tartib dar server-e Iran vared konid:${NC}\n"
+        echo -e "${CYAN}1. Aval, script ra ba dastoor-e zir download konid:${NC}"
         echo -e "${GREEN}curl -O $NEW_DOWNLOAD_URL${NC}\n"
-        echo -e "${CYAN}2. Make it executable:${NC}"
+        echo -e "${CYAN}2. Dovom, file ra ghabele ejra konid:${NC}"
         echo -e "${GREEN}chmod +x $FILENAME${NC}\n"
-        echo -e "${CYAN}3. Run the script directly:${NC}"
+        echo -e "${CYAN}3. Sevom, script ra mostaghim ejra konid:${NC}"
         echo -e "${GREEN}./$FILENAME${NC}"
     fi
 }
@@ -115,28 +114,66 @@ list_commands() {
     if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No scripts found.${NC}"; fi
 }
 
+# --- IMPROVED DELETE FUNCTION ---
 delete_script() {
-    # (این تابع بدون تغییر باقی می‌ماند)
-    if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then echo -e "${YELLOW}No scripts to delete.${NC}"; return; fi
-    PS3=$'\n'"${YELLOW}Which item to delete?: ${NC}"
-    select DIRS in "$BASE_DIR"/*/ "DELETE-ALL-SCRIPTS" "Back to Main Menu"; do
-        case $DIRS in
+    if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then
+        echo -e "${YELLOW}No scripts to delete.${NC}"; return
+    fi
+
+    echo -e "${CYAN}Downloaded scripts:${NC}"
+    
+    # Build a user-friendly menu with script names
+    local options=()
+    for dir in "$BASE_DIR"/*/; do
+        if [ -d "$dir" ]; then
+            local script_file
+            script_file=$(find "$dir" -maxdepth 1 -type f -name "*.sh" -o -name "*.py" -o -name "config-installer" -print -quit)
+            if [ -n "$script_file" ]; then
+                local script_name=$(basename "$script_file")
+                options+=("Script: '$script_name' (Directory: $dir)")
+            else
+                options+=("Unknown Script (Directory: $dir)")
+            fi
+        fi
+    done
+    options+=("DELETE-ALL-SCRIPTS" "Back to Main Menu")
+
+    PS3=$'\n'"${YELLOW}Which item do you want to delete? (Enter number): ${NC}"
+    select opt in "${options[@]}"; do
+        case $opt in
             "DELETE-ALL-SCRIPTS")
                 read -p "Delete ALL? [y/N] " confirm; if [[ $confirm == [yY]* ]]; then
                     if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
                     rm -rf "$BASE_DIR"; echo -e "${RED}All deleted.${NC}"
-                else echo "Canceled."; fi; break ;;
-            "Back to Main Menu") break ;;
+                else echo "Canceled."; fi
+                break
+                ;;
+            "Back to Main Menu")
+                break
+                ;;
             *)
-                if [ -d "$DIRS" ]; then read -p "Delete '$DIRS'? [y/N] " confirm
-                    if [[ $confirm == [yY]* ]]; then rm -rf "$DIRS"; echo -e "${RED}Deleted.${NC}";
-                    else echo "Canceled."; fi
-                else echo -e "${RED}Invalid selection.${NC}"; fi; break ;;
-        esac; done
+                if [ -n "$opt" ]; then
+                    # Extract the directory path from the selected option string
+                    local dir_to_delete=$(echo "$opt" | grep -oP '\(Directory: \K[^)]+')
+                    
+                    read -p "Delete script in '$dir_to_delete'? [y/N] " confirm
+                    if [[ $confirm == [yY]* ]]; then
+                        rm -rf "$dir_to_delete"
+                        echo -e "${RED}Directory '$dir_to_delete' deleted.${NC}"
+                    else
+                        echo "Canceled."
+                    fi
+                else
+                    echo -e "${RED}Invalid selection.${NC}"
+                fi
+                break
+                ;;
+        esac
+    done
 }
 
 change_port() {
-    # (این تابع بدون تغییر باقی می‌ماند)
+    # (This function remains unchanged)
     if [ -f "$CONFIG_FILE" ]; then
         OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current: $OLD_PORT"
         if pgrep -f "python3 -m http.server $OLD_PORT" > /dev/null; then
@@ -152,7 +189,7 @@ change_port() {
 }
 
 uninstall_manager() {
-    # (این تابع بدون تغییر باقی می‌ماند)
+    # (This function remains unchanged)
     read -p "Uninstall manager and all scripts? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
         if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
@@ -161,7 +198,7 @@ uninstall_manager() {
     else echo "Canceled."; fi
 }
 
-# --- منوی اصلی ---
+# --- Main Menu ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
