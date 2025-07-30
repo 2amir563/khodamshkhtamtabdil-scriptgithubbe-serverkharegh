@@ -68,21 +68,22 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- Intelligent and Corrected Command Generation ---
+    # --- Corrected and Robust Command Generation ---
     FINAL_COMMAND=""
-    # Check for chained commands like 'curl -O' or 'wget'
+    # Check for chained commands that save the file first
     if [[ "$USER_INPUT" == *"curl -O"* || "$USER_INPUT" == *"wget"* && "$USER_INPUT" == *"&&"* ]]; then
-        # This is a chained command that saves the file first
-        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^&]+')
-        REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
-        FINAL_COMMAND="${USER_INPUT/$ORIGINAL_DOWNLOAD_CMD/$REPLACEMENT_COMMAND}"
+        # Rebuild the command chain safely
+        REPLACEMENT_DOWNLOAD="curl -O $NEW_DOWNLOAD_URL"
+        # Get everything after the first '&&'
+        REST_OF_COMMAND="${USER_INPUT#*&& }"
+        FINAL_COMMAND="$REPLACEMENT_DOWNLOAD && $REST_OF_COMMAND"
 
     elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
-        # This is a multi-line block command
+        # Replace the URL inside the multi-line block
         FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\`\"']*|$NEW_DOWNLOAD_URL|")
 
     else
-        # This is the default case for simple scripts (bash <(curl ...))
+        # Default case for simple scripts (bash <(curl ...))
         FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
     fi
     # --------------------------------------------------------
