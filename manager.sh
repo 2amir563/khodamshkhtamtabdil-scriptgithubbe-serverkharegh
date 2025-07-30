@@ -1,19 +1,18 @@
 #!/bin/bash
 
-# --- Settings ---
+# --- تنظیمات ---
 BASE_DIR="$HOME/dl_files"
 CONFIG_FILE="$BASE_DIR/.port_config"
 
-# --- Colors ---
+# --- رنگ‌ها ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# --- Functions ---
+# --- توابع ---
 
-# Manages port and web server
 manage_port_and_server() {
     mkdir -p "$BASE_DIR"
     if [ -f "$CONFIG_FILE" ]; then
@@ -33,7 +32,6 @@ manage_port_and_server() {
     fi
 }
 
-# Adds a new script by intelligently generating the final command
 add_script() {
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
@@ -68,104 +66,93 @@ add_script() {
     FINAL_URL_PATH="$DIR_HASH/$FILENAME"
     NEW_DOWNLOAD_URL="http://$IP_ADDR:$PORT/$FINAL_URL_PATH"
 
-    # --- Intelligent Command Generation ---
+    # --- بخش جدید و اصلاح شده: تشخیص نوع دستور و ساخت خروجی هوشمند ---
     FINAL_COMMAND=""
-    if [[ "$USER_INPUT" == *"curl -O"* ]]; then
-        # Chained command (curl -O ... && ...)
+    # بررسی دقیق‌تر برای دستورات زنجیره‌ای
+    if [[ "$USER_INPUT" == *curl\ -O* || "$USER_INPUT" == *wget* ]]; then
+        # حالت زنجیره‌ای (curl -O ... && ...)
+        # جایگزینی بخش دانلود با لینک جدید
+        # استخراج دستور دانلود اولیه برای جایگزینی
+        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^\&]+')
         REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
-        REST_OF_COMMAND="${USER_INPUT#*&&}"
-        FINAL_COMMAND="$REPLACEMENT_COMMAND &&$REST_OF_COMMAND"
+        FINAL_COMMAND="${USER_INPUT/$ORIGINAL_DOWNLOAD_CMD/$REPLACEMENT_COMMAND}"
+
     elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
-        # Multi-line block command
-        FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\"]*|$NEW_DOWNLOAD_URL|")
+        # حالت بلاک کد چندخطی
+        # جایگزینی URL داخل متغیر
+        FINAL_COMMAND=$(echo "$USER_INPUT" | sed "s|https?://[^\`\"']*|$NEW_DOWNLOAD_URL|")
+
     else
-        # Default case (bash <(curl ...))
+        # حالت پیش‌فرض (bash <(curl ...))
         FINAL_COMMAND="bash <(curl -Ls $NEW_DOWNLOAD_URL)"
     fi
-    # ------------------------------------
+    # --------------------------------------------------------
 
     echo -e "\n${YELLOW}--- Automatically Generated Command for Iran Server ---${NC}"
     echo -e "${GREEN}${FINAL_COMMAND}${NC}"
 }
 
-# Lists generated commands (simple format)
+# (بقیه توابع بدون تغییر باقی می‌مانند)
+
 list_commands() {
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return
-    fi
-    PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me)
-    echo -e "\n--- List of Commands for Iran Server ---"
-    echo -e "IP Address: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
-    
+    if [ ! -f "$CONFIG_FILE" ]; then echo -e "${YELLOW}No scripts downloaded or port not set yet.${NC}"; return; fi
+    PORT=$(cat "$CONFIG_FILE"); IP_ADDR=$(curl -s ifconfig.me); echo -e "\n--- List of Commands ---"; echo -e "IP: ${CYAN}$IP_ADDR${NC}, Port: ${CYAN}$PORT${NC}\n"
     found_scripts=false
     for dir in "$BASE_DIR"/*/; do
         if [ -d "$dir" ]; then
             for script_path in "$dir"*; do
                 if [ -f "$script_path" ]; then
                     relative_path=${script_path#"$BASE_DIR/"}; script_name=$(basename "$script_path")
-                    echo -e "${YELLOW}Command for '${script_name}':${NC}"
-                    echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$relative_path)${NC}\n"
+                    echo -e "${YELLOW}'${script_name}':${NC} ${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$relative_path)${NC}\n"
                     found_scripts=true
-                fi
-            done
-        fi
-    done
-    if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No downloaded scripts found.${NC}"; fi
+                fi; done; fi; done
+    if [ "$found_scripts" = false ]; then echo -e "${YELLOW}No scripts found.${NC}"; fi
 }
 
-# Deletes scripts interactively
 delete_script() {
-    if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then
-        echo -e "${YELLOW}No scripts to delete.${NC}"; return
-    fi
-    PS3=$'\n'"${YELLOW}Which item do you want to delete?: ${NC}"
+    if [ ! -d "$BASE_DIR" ] || [ -z "$(ls -A "$BASE_DIR")" ]; then echo -e "${YELLOW}No scripts to delete.${NC}"; return; fi
+    PS3=$'\n'"${YELLOW}Which item to delete?: ${NC}"
     select DIRS in "$BASE_DIR"/*/ "DELETE-ALL-SCRIPTS" "Back to Main Menu"; do
         case $DIRS in
             "DELETE-ALL-SCRIPTS")
-                read -p "Delete ALL scripts and '$BASE_DIR'? [y/N] " confirm
-                if [[ $confirm == [yY]* ]]; then
+                read -p "Delete ALL? [y/N] " confirm; if [[ $confirm == [yY]* ]]; then
                     if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
                     rm -rf "$BASE_DIR"; echo -e "${RED}All deleted.${NC}"
                 else echo "Canceled."; fi; break ;;
             "Back to Main Menu") break ;;
             *)
-                if [ -d "$DIRS" ]; then
-                    read -p "Delete '$DIRS'? [y/N] " confirm
-                    if [[ $confirm == [yY]* ]]; then rm -rf "$DIRS"; echo -e "${RED}Directory deleted.${NC}";
+                if [ -d "$DIRS" ]; then read -p "Delete '$DIRS'? [y/N] " confirm
+                    if [[ $confirm == [yY]* ]]; then rm -rf "$DIRS"; echo -e "${RED}Deleted.${NC}";
                     else echo "Canceled."; fi
                 else echo -e "${RED}Invalid selection.${NC}"; fi; break ;;
-        esac
-    done
+        esac; done
 }
 
-# Changes the web server port
 change_port() {
     if [ -f "$CONFIG_FILE" ]; then
-        OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current port: $OLD_PORT"
+        OLD_PORT=$(cat "$CONFIG_FILE"); echo "Current: $OLD_PORT"
         if pgrep -f "python3 -m http.server $OLD_PORT" > /dev/null; then
-            pkill -f "python3 -m http.server $OLD_PORT"; echo -e "${GREEN}Web server stopped.${NC}"
+            pkill -f "python3 -m http.server $OLD_PORT"; echo -e "${GREEN}Server stopped.${NC}"
         fi
     fi
-    read -p "Enter new port (e.g., 8080): " NEW_PORT
+    read -p "Enter new port: " NEW_PORT
     if ! [[ "$NEW_PORT" =~ ^[0-9]+$ ]] || [ "$NEW_PORT" -lt 1024 ] || [ "$NEW_PORT" -gt 65535 ]; then
-        echo -e "${RED}Error: Invalid port number.${NC}"; return
+        echo -e "${RED}Invalid port.${NC}"; return
     fi
     echo "$NEW_PORT" > "$CONFIG_FILE"; echo -e "${GREEN}Port changed to ${NEW_PORT}.${NC}"
     manage_port_and_server
 }
 
-# Uninstalls the manager script
 uninstall_manager() {
-    read -p "This will remove the manager and all downloaded scripts. Are you sure? [y/N] " confirm
+    read -p "Uninstall manager and all scripts? [y/N] " confirm
     if [[ $confirm == [yY]* ]]; then
         if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
         echo -e "\n${YELLOW}To complete, run this command after exit:${NC}"
-        echo -e "\n${GREEN}rm -rf \"$BASE_DIR\" \"$0\"${NC}\n"
-        exit 0
+        echo -e "\n${GREEN}rm -rf \"$BASE_DIR\" \"$0\"${NC}\n"; exit 0
     else echo "Canceled."; fi
 }
 
-# --- Main Menu ---
+# --- منوی اصلی ---
 while true; do
     clear
     echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
@@ -176,18 +163,9 @@ while true; do
     echo -e "${RED}5. Uninstall Script Manager${NC}"
     echo "6. Quit"
     read -p "Please select an option [1-6]: " choice
-
     case $choice in
-        1) add_script ;;
-        2) list_commands ;;
-        3) delete_script ;;
-        4) change_port ;;
-        5) uninstall_manager ;;
-        6) exit 0 ;;
-        *) echo -e "${RED}Invalid option.${NC}" ;;
+        1) add_script ;; 2) list_commands ;; 3) delete_script ;; 4) change_port ;;
+        5) uninstall_manager ;; 6) exit 0 ;; *) echo -e "${RED}Invalid option.${NC}" ;;
     esac
-    
-    if [[ "$choice" != "6" && "$choice" != "5" ]]; then
-        read -p $'\nPress Enter to return to the menu...'
-    fi
+    if [[ "$choice" != "6" && "$choice" != "5" ]]; then read -p $'\nPress Enter to return...'; fi
 done
