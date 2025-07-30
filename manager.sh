@@ -73,10 +73,9 @@ add_script() {
     # Check for chained commands that save the file first
     if [[ "$USER_INPUT" == *"curl -O"* || "$USER_INPUT" == *"wget"* && "$USER_INPUT" == *"&&"* ]]; then
         # Rebuild the command chain safely
-        REPLACEMENT_DOWNLOAD="curl -O $NEW_DOWNLOAD_URL"
-        # Get everything after the first '&&'
-        REST_OF_COMMAND="${USER_INPUT#*&& }"
-        FINAL_COMMAND="$REPLACEMENT_DOWNLOAD && $REST_OF_COMMAND"
+        ORIGINAL_DOWNLOAD_CMD=$(echo "$USER_INPUT" | grep -oP '(curl|wget)[^&]+')
+        REPLACEMENT_COMMAND="curl -O $NEW_DOWNLOAD_URL"
+        FINAL_COMMAND="${USER_INPUT/$ORIGINAL_DOWNLOAD_CMD/$REPLACEMENT_COMMAND}"
 
     elif [[ "$USER_INPUT" == *"sudo bash -c"* ]]; then
         # Replace the URL inside the multi-line block
