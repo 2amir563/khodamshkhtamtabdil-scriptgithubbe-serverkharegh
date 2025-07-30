@@ -33,13 +33,28 @@ manage_port_and_server() {
     fi
 }
 
-# تابع برای افزودن اسکریپت جدید
+# تابع برای افزودن اسکریپت جدید (هوشمند شده)
 add_script() {
-    read -p "Please enter the full URL of the script to add: " URL
-    if [ -z "$URL" ]; then
-        echo -e "${RED}URL cannot be empty.${NC}"
+    read -p "Please enter the script URL (or the full command): " USER_INPUT
+    if [ -z "$USER_INPUT" ]; then
+        echo -e "${RED}Input cannot be empty.${NC}"
         return
     fi
+
+    # --- بخش جدید: استخراج هوشمند URL از ورودی کاربر ---
+    URL=$(echo "$USER_INPUT" | grep -oP 'https?://[^\s"''\)\`]+')
+
+    if [ -z "$URL" ]; then
+        echo -e "${RED}Error: No valid URL found in your input.${NC}"
+        echo -e "${YELLOW}Please provide just the URL, like: https://example.com/install.sh${NC}"
+        return
+    fi
+
+    # اگر کاربر کل دستور را وارد کرده بود، به او اطلاع بده که URL استخراج شده است
+    if [[ "$USER_INPUT" != "$URL" ]]; then
+        echo -e "${CYAN}Full command detected. Extracted URL: $URL${NC}"
+    fi
+    # ----------------------------------------------------
     
     manage_port_and_server
     PORT=$(cat "$CONFIG_FILE")
@@ -66,6 +81,8 @@ add_script() {
     echo -e "\n${YELLOW}Command for Iran server:${NC}"
     echo -e "${GREEN}bash <(curl -Ls http://$IP_ADDR:$PORT/$FINAL_URL_PATH)${NC}"
 }
+
+# (بقیه توابع بدون تغییر باقی می‌مانند)
 
 # تابع برای نمایش لیست دستورها
 list_commands() {
