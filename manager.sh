@@ -33,7 +33,7 @@ manage_port_and_server() {
 }
 
 add_script_simple_proxy() {
-    echo -e "\n--- Simple Proxy Mode ---"
+    echo -e "\n--- Simple Proxy (For single-file scripts) ---"
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
     if [ -z "$USER_INPUT" ]; then echo -e "${RED}Input cannot be empty.${NC}"; return; fi
@@ -73,7 +73,7 @@ add_script_simple_proxy() {
 }
 
 add_script_full_proxy() {
-    echo -e "\n--- Full Proxy Mode ---"
+    echo -e "\n--- Full Proxy (For multi-file installers) ---"
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
     if [ -z "$USER_INPUT" ]; then echo -e "${RED}Input cannot be empty.${NC}"; return; fi
@@ -195,4 +195,43 @@ change_port() {
         fi
     fi
     read -p "Enter new port: " NEW_PORT
-    if ! [[ "$NEW_PORT" =~ ^[0-
+    if ! [[ "$NEW_PORT" =~ ^[0-9]+$ ]] || [ "$NEW_PORT" -lt 1024 ] || [ "$NEW_PORT" -gt 65535 ]; then
+        echo -e "${RED}Invalid port.${NC}"; return
+    fi
+    echo "$NEW_PORT" > "$CONFIG_FILE"; echo -e "${GREEN}Port changed to ${NEW_PORT}.${NC}"
+    manage_port_and_server
+}
+
+uninstall_manager() {
+    read -p "Uninstall manager and all scripts? [y/N] " confirm
+    if [[ $confirm == [yY]* ]]; then
+        if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
+        echo -e "\n${YELLOW}To complete, run this command after exit:${NC}"
+        echo -e "\n${GREEN}rm -rf \"$BASE_DIR\" \"$0\"${NC}\n"; exit 0
+    else echo "Canceled."; fi
+}
+
+# --- Main Menu ---
+while true; do
+    clear
+    echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
+    echo "1. Add Script (Simple Proxy - For single files)"
+    echo "2. Add Script (Full Proxy - For multi-file installers)"
+    echo "3. List Generated Commands"
+    echo "4. Delete a Script / All Scripts"
+    echo "5. Change Port"
+    echo -e "${RED}6. Uninstall Script Manager${NC}"
+    echo "7. Quit"
+    read -p "Please select an option [1-7]: " choice
+    case $choice in
+        1) add_script_simple_proxy ;;
+        2) add_script_full_proxy ;;
+        3) list_commands ;;
+        4) delete_script ;;
+        5) change_port ;;
+        6) uninstall_manager ;;
+        7) exit 0 ;;
+        *) echo -e "${RED}Invalid option.${NC}" ;;
+    esac
+    if [[ "$choice" -lt 6 ]]; then read -p $'\nPress Enter to return...'; fi
+done
