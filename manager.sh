@@ -32,7 +32,8 @@ manage_port_and_server() {
     fi
 }
 
-add_script_simple() {
+add_script_simple_proxy() {
+    echo -e "\n--- Simple Proxy Mode ---"
     echo "Please paste the full original installation command:"
     read -r USER_INPUT
     if [ -z "$USER_INPUT" ]; then echo -e "${RED}Input cannot be empty.${NC}"; return; fi
@@ -71,10 +72,15 @@ add_script_simple() {
     fi
 }
 
-add_script_advanced() {
-    echo "--- Advanced Proxy Mode ---"
-    read -p "Enter the URL of the main installer script (e.g., install.sh): " URL
-    if [ -z "$URL" ]; then echo -e "${RED}URL cannot be empty.${NC}"; return; fi
+add_script_full_proxy() {
+    echo -e "\n--- Full Proxy Mode ---"
+    echo "Please paste the full original installation command:"
+    read -r USER_INPUT
+    if [ -z "$USER_INPUT" ]; then echo -e "${RED}Input cannot be empty.${NC}"; return; fi
+
+    URL=$(echo "$USER_INPUT" | grep -oE 'https?://[a-zA-Z0-9./_-]+')
+    if [ -z "$URL" ]; then echo -e "${RED}Error: No valid URL found.${NC}"; return; fi
+    echo -e "${CYAN}Extracted URL: $URL${NC}"
 
     manage_port_and_server
     PORT=$(cat "$CONFIG_FILE")
@@ -92,7 +98,6 @@ add_script_advanced() {
         if ! wget -q -O "$MODIFIED_SCRIPT_PATH" "$URL"; then echo -e "${RED}Failed.${NC}"; rm -rf "$TARGET_DIR"; return; fi
 
         echo -e "${CYAN}Searching for dependencies inside the script...${NC}"
-        # Find all http/https URLs that likely point to downloadable files
         DEPENDENCY_URLS=$(grep -oE 'https?://[a-zA-Z0-9./_-]+\.(tar\.gz|sh|zip|dat)' "$MODIFIED_SCRIPT_PATH" | sort -u)
 
         if [ -z "$DEPENDENCY_URLS" ]; then
@@ -103,7 +108,6 @@ add_script_advanced() {
                 echo -e "--> Downloading dependency: ${CYAN}$dep_filename${NC}"
                 if ! wget -q -O "$TARGET_DIR/$dep_filename" "$dep_url"; then echo -e "${RED}Failed to download dependency: $dep_url${NC}"; continue; fi
                 
-                # Rewrite the URL in the main script
                 new_dep_url="http://$IP_ADDR:$PORT/$DIR_HASH/$dep_filename"
                 sed -i "s|$dep_url|$new_dep_url|g" "$MODIFIED_SCRIPT_PATH"
             done
@@ -191,43 +195,4 @@ change_port() {
         fi
     fi
     read -p "Enter new port: " NEW_PORT
-    if ! [[ "$NEW_PORT" =~ ^[0-9]+$ ]] || [ "$NEW_PORT" -lt 1024 ] || [ "$NEW_PORT" -gt 65535 ]; then
-        echo -e "${RED}Invalid port.${NC}"; return
-    fi
-    echo "$NEW_PORT" > "$CONFIG_FILE"; echo -e "${GREEN}Port changed to ${NEW_PORT}.${NC}"
-    manage_port_and_server
-}
-
-uninstall_manager() {
-    read -p "Uninstall manager and all scripts? [y/N] " confirm
-    if [[ $confirm == [yY]* ]]; then
-        if [ -f "$CONFIG_FILE" ]; then PORT=$(cat "$CONFIG_FILE"); pkill -f "python3 -m http.server $PORT"; fi
-        echo -e "\n${YELLOW}To complete, run this command after exit:${NC}"
-        echo -e "\n${GREEN}rm -rf \"$BASE_DIR\" \"$0\"${NC}\n"; exit 0
-    else echo "Canceled."; fi
-}
-
-# --- Main Menu ---
-while true; do
-    clear
-    echo -e "\n${CYAN}--- Script Management Menu ---${NC}"
-    echo "1. Add Script (Simple Mode)"
-    echo "2. Add Script (Advanced Proxy Mode)"
-    echo "3. List Generated Commands"
-    echo "4. Delete a Script / All Scripts"
-    echo "5. Change Port"
-    echo -e "${RED}6. Uninstall Script Manager${NC}"
-    echo "7. Quit"
-    read -p "Please select an option [1-7]: " choice
-    case $choice in
-        1) add_script_simple ;;
-        2) add_script_advanced ;;
-        3) list_commands ;;
-        4) delete_script ;;
-        5) change_port ;;
-        6) uninstall_manager ;;
-        7) exit 0 ;;
-        *) echo -e "${RED}Invalid option.${NC}" ;;
-    esac
-    if [[ "$choice" -lt 6 ]]; then read -p $'\nPress Enter to return...'; fi
-done
+    if ! [[ "$NEW_PORT" =~ ^[0-
