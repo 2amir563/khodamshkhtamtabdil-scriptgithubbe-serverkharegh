@@ -1,54 +1,57 @@
 #!/bin/bash
 
-# این اسکریپت به صورت خودکار تمام فایل‌های لازم برای نصب پنل را دانلود،
-# اسکریپت نصب را ویرایش، و دستورات نهایی را برای شما آماده می‌کند.
+# This script automates the entire process of proxying a multi-file installer.
 
-# --- تنظیمات ---
-PANEL_FILES_DIR="$HOME/sanaei-panel-files"
-PORT=8888 # می‌توانید این پورت را تغییر دهید
-
-# --- رنگ‌ها ---
+# --- Colors ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}--- Shoro-e amaliat-e amade sazi-e file-ha ---${NC}"
+echo -e "${CYAN}--- Starting Fully Automated Proxy Setup ---${NC}"
 
-# ۱. ساخت پوشه
-mkdir -p "$PANEL_FILES_DIR"
-cd "$PANEL_FILES_DIR"
+# --- Settings ---
+# Directory to store the proxied files
+FILES_DIR="$HOME/proxied-files"
+# Port for the web server
+PORT=8888
 
-# ۲. دانلود تمام فایل‌های لازم
-echo "Dar hale download-e file-haye panel (install.sh, x-ui.tar.gz, x-ui.sh)..."
+# 1. Create directory
+mkdir -p "$FILES_DIR"
+cd "$FILES_DIR"
+
+# 2. Download all required files for 3x-ui panel
+echo "Downloading necessary files (install.sh, x-ui.tar.gz, x-ui.sh)..."
 wget -q -O install.sh https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh
 wget -q -O x-ui-linux-amd64.tar.gz https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-amd64.tar.gz
 wget -q -O x-ui.sh https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-echo -e "${GREEN}Tamam-e file-ha download shodand.${NC}"
+echo -e "${GREEN}All required files have been downloaded.${NC}"
 
-# ۳. ویرایش خودکار اسکریپت نصب
-echo "Dar hale virayesh-e script-e nasb baraye estefade az proxy..."
-# غیرفعال کردن دستورات دانلود از گیت‌هاب در اسکریپت نصب
-sed -i -e '/releases\/download/ s/^/# /' -e '/x-ui\.sh/ s/^/# /' install.sh
-echo -e "${GREEN}Script-e nasb virayesh shod.${NC}"
-
-# ۴. راه‌اندازی وب‌سرور
-echo "Dar hale راه andazi-e web server rooye port ${PORT}..."
-# متوقف کردن سرور قبلی اگر در حال اجرا باشد
-pkill -f "python3 -m http.server $PORT" &>/dev/null
-# اجرای سرور جدید در پس‌زمینه
-nohup python3 -m http.server $PORT &>/dev/null &
-echo -e "${GREEN}Web server fa'al shod.${NC}"
-
-# ۵. ساخت دستورات نهایی برای سرور ایران
+# 3. Get server IP and create new download URLs
 IP_ADDR=$(curl -s ifconfig.me)
+TAR_GZ_URL="http://$IP_ADDR:$PORT/x-ui-linux-amd64.tar.gz"
+XUI_SH_URL="http://$IP_ADDR:$PORT/x-ui.sh"
+
+# 4. Automatically modify the installer script to use the new URLs
+echo "Rewriting install.sh to download from this server..."
+# Find the original GitHub URLs in install.sh and replace them with our new proxy URLs
+sed -i "s|https://github.com/MHSanaei/3x-ui/releases/download/.*/x-ui-linux-amd64.tar.gz|$TAR_GZ_URL|g" install.sh
+sed -i "s|https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh|$XUI_SH_URL|g" install.sh
+echo -e "${GREEN}Installer script has been successfully modified.${NC}"
+
+# 5. Start the web server
+echo "Starting web server on port ${PORT}..."
+# Stop any previous server on the same port to avoid conflicts
+pkill -f "python3 -m http.server $PORT" &>/dev/null
+# Start the new server in the background
+nohup python3 -m http.server $PORT &>/dev/null &
+echo -e "${GREEN}Web server is now active.${NC}"
+
+# 6. Generate the final, single command for the Iran server
+FINAL_URL="http://$IP_ADDR:$PORT/install.sh"
 echo -e "\n====================================================================="
-echo -e "${YELLOW}RAHNAY-E NASB DAR SERVER-E IRAN:${NC}"
-echo -e "Dastoorat-e zir ra be tartib dar server-e Iran vared va ejra konid:"
+echo -e "${YELLOW}FINAL COMMAND FOR YOUR IRAN SERVER:${NC}"
+echo -e "Copy and run this single command on your Iran server."
+echo -e "It will install the panel without connecting to GitHub."
 echo -e "====================================================================="
-
-echo -e "\n${CYAN}1. Download-e hame-ye file-ha (in block ra copy/paste konid):${NC}"
-echo -e "${GREEN}curl -O http://$IP_ADDR:$PORT/install.sh && curl -O http://$IP_ADDR:$PORT/x-ui-linux-amd64.tar.gz && curl -O http://$IP_ADDR:$PORT/x-ui.sh${NC}"
-
-echo -e "\n${CYAN}2. Ejra-ye script-e nasb:${NC}"
-echo -e "${GREEN}chmod +x install.sh && bash ./install.sh${NC}\n"
+echo -e "${GREEN}bash <(curl -Ls $FINAL_URL)${NC}\n"
