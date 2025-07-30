@@ -47,11 +47,15 @@ add_script_simple_proxy() {
     DIR_HASH=$(echo -n "$URL" | md5sum | cut -c1-8)
     TARGET_DIR="$BASE_DIR/$DIR_HASH"
     
-    if [ ! -d "$TARGET_DIR" ]; then
-        mkdir -p "$TARGET_DIR"
+    # Create directory and save log file regardless
+    mkdir -p "$TARGET_DIR"
+    echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
+
+    if [ -f "$TARGET_DIR/$FILENAME" ]; then
+        echo -e "${YELLOW}Script file already exists. Skipping download.${NC}"
+    else
         echo -e "${CYAN}Downloading: ${FILENAME}...${NC}"
         if ! wget -q -O "$TARGET_DIR/$FILENAME" "$URL"; then echo -e "${RED}Download failed.${NC}"; rm -rf "$TARGET_DIR"; return; fi
-        echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
         echo -e "${GREEN}Download successful.${NC}"
     fi
 
@@ -88,18 +92,17 @@ add_script_full_proxy() {
 
     DIR_HASH=$(echo -n "$URL" | md5sum | cut -c1-8)
     TARGET_DIR="$BASE_DIR/$DIR_HASH"
+    MODIFIED_SCRIPT_PATH="$TARGET_DIR/$(basename "$URL")"
     
-    if [ -d "$TARGET_DIR" ]; then
+    # Create directory and save log file regardless
+    mkdir -p "$TARGET_DIR"
+    echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
+    
+    if [ -f "$MODIFIED_SCRIPT_PATH" ]; then
         echo -e "${YELLOW}This script has been processed before. Generating command from existing files.${NC}"
     else
-        mkdir -p "$TARGET_DIR"
-        MODIFIED_SCRIPT_PATH="$TARGET_DIR/$(basename "$URL")"
         echo -e "${CYAN}Downloading main script to ${MODIFIED_SCRIPT_PATH}...${NC}"
         if ! wget -q -O "$MODIFIED_SCRIPT_PATH" "$URL"; then echo -e "${RED}Failed.${NC}"; rm -rf "$TARGET_DIR"; return; fi
-
-        # *** BUG FIX IS HERE ***
-        # Save the original command log so the list function can find it
-        echo "$USER_INPUT" > "$TARGET_DIR/$COMMAND_LOG_FILE"
 
         echo -e "${CYAN}Searching for dependencies inside the script...${NC}"
         DEPENDENCY_URLS=$(grep -oE 'https?://[a-zA-Z0-9./_-]+\.(tar\.gz|sh|zip|dat)' "$MODIFIED_SCRIPT_PATH" | sort -u)
@@ -165,13 +168,12 @@ delete_script() {
         if [ -d "$dir" ]; then
             local script_file=$(find "$dir" -maxdepth 1 -type f -print -quit)
             if [ -n "$script_file" ]; then
-                # Look for the original command log to get the real script name
                 local log_file="$dir/$COMMAND_LOG_FILE"
                 if [ -f "$log_file" ]; then
                     local url_in_log=$(grep -oE 'https?://[a-zA-Z0-9./_-]+' "$log_file" | head -n 1)
                     local script_name=$(basename "$url_in_log")
                     options+=("Script: '$script_name' (Dir: ${dir%/})")
-                else # Fallback if log is missing
+                else
                     options+=("Unknown Script (Dir: ${dir%/})")
                 fi
             fi
