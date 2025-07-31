@@ -4,6 +4,13 @@
 
 
 
+ کد زیر به درستی پنل s-ui علیرضا را  با کمک سرور خارج در سرور ایران نصب میکند توجه کنید وقتی این را در سرور خارج میزنیم در انتها به ما چند کد میدهد که باید ان کدها را در سرور ایران بزنیم تا پنل s-ui علیرضا 
+نصب شود
+
+```
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/refs/heads/main/setup-s-ui.sh)
+```
+
 
 
 
