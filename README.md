@@ -8,7 +8,8 @@
 
 
 
-
+ کد زیر به درستی پنل ایکس یو ای صناعی را  با کمک سرور خارج در سرور ایران نصب میکند توجه کنید وقتی این را در سرور خارج میزنیم در انتها به ما چند کد میدهد که باید ان کدها را در سرور ایران بزنیم تا پنل ایکس یو ای 
+صناعی نصب شود
 
 ```
 bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/main/setup-x-ui.sh)
