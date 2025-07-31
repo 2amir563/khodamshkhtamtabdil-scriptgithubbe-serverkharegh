@@ -1,5 +1,11 @@
 
 
+rgt-tunnel
+
+```
+bash <(curl -sL https://raw.githubusercontent.com/2amir563/khodamshkhtamtabdil-scriptgithubbe-serverkharegh/refs/heads/main/setup-rgt-tunnel.sh)
+```
+
 
 یادت باشد برای جلوگیری از تداخل بعد نصب یک پنل مثلا ایکس یو ای بعد بیا با کد زیر فایل ها رو از سرور خارج حذف کن وبعد اقدام به نصب پنل اس یو ای علیرضا کن
 # ۳. فایل‌های اولیه را پاک کنید
